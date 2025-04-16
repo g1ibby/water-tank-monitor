@@ -147,28 +147,6 @@ Below are images of the assembled PCB and the final installation:
 
 **Final Installation on the Tank:**
 ![Final Installation](images/result.jpg)
+
 *Shows the enclosure mounted and the three XKC-Y25-V sensor attached to the tank surface.*
 
-## Summary
-
-### Sensors
-You are using the XKC-Y25-V non-contact capacitive liquid level sensor, which reliably detects liquid levels by measuring changes in capacitance through a container wall. Its colored wiring is as follows: Brown (+5V), Blue (GND), Yellow (Signal Output), and Black (unused in positive output mode).
-
-### Microcontroller & Firmware
-A Seeed Studio XIAO ESP32C3 development board runs the ESPHome firmware, providing WiFi connectivity, API integration with Home Assistant, and OTA update capability.
-
-### Logic Level Shifter
-A 4-Channel IIC I2C Bi-Directional Logic Level Shifter module is used to safely interface each sensor's 5V signal output with the ESP32's 3.3V GPIO inputs. The module requires connections to both 5V (HV) and 3.3V (LV) power rails, as well as a common ground. Each sensor's yellow wire passes through a dedicated channel (HVx input to LVx output) on the shifter before connecting to the corresponding ESP32 GPIO pin.
-
-### Wiring
-- `GPIO9`: Connected to the Tank Level Sensor 1 output via Level Shifter Channel 1 (`LV1`).
-- `GPIO10`: Connected to the Tank Level Sensor 2 output via Level Shifter Channel 2 (`LV2`).
-- `GPIO8`: Connected to the Tank Level Sensor 3 output via Level Shifter Channel 3 (`LV3`).
-- All sensors, the ESP32, and the level shifter share a common ground (`GND`).
-- Level shifter is powered by `5V` (HV) and `3.3V` (LV from ESP32).
-- The system is powered by a Hi-Link HLK-5M05 5V power supply module
-
-### System Integration
-Sensor states are captured and relayed by ESPHome to Home Assistant, which allows you to monitor the tank liquid levels in real time. No additional LED outputs or automations are configured, focusing the project solely on level monitoring.
-
-This project provides a robust and scalable solution for monitoring liquid levels in a tank using advanced sensor technology, integrated microcontroller firmware, and home automation software. If you need further details or modifications, feel free to ask!
