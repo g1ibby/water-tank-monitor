@@ -7,6 +7,7 @@
 **This project provides a robust, DIY solution for monitoring liquid levels in a tank using non-contact sensors and seamless integration with Home Assistant.**
 
 ![Final Installation](images/result.jpg)
+
 _The finished system mounted on a tank, with sensors attached._
 
 ## Overview
@@ -26,55 +27,35 @@ This system continuously monitors liquid presence at three key points in a tank 
 ## How It Works Visually
 
 ```mermaid
-graph LR
-    subgraph Enclosure [Enclosure (IP67)]
-        direction TB
-        AC[Mains AC Power] --> HLK[HLK-5M05 Power Supply (5V DC)]
-        HLK --> ESP32[XIAO ESP32C3 VIN]
-        HLK --> LLS_HV_PWR[Logic Level Shifter HV (5V)]
-        ESP32_3V3[ESP32 3.3V Out] --> LLS_LV_PWR[LLS LV (3.3V)]
-        GND_COMMON[Common GND] --> LLS_GND[LLS GND]
-        GND_COMMON --> ESP32_GND[ESP32 GND]
-        HLK -- GND --> GND_COMMON
+graph TD
 
-        S1_SIG_IN[Sensor 1 Signal In (5V)] --> LLS_HV1[LLS HV1]
-        LLS_LV1[LLS LV1] -- 3.3V Signal --> ESP32_GPIO9[ESP32 GPIO9]
+    %% Define Nodes with Icons
+    Tank[(fa:fa-database Water Tank)]
+    Sensors(fa:fa-water 3x XKC-Y25-V Sensors)
+    ACPower(fa:fa-plug AC Mains Power)
+    PSU(fa:fa-bolt Power Supply HLK-5M05)
+    LLS(fa:fa-exchange-alt Logic Level Shifter)
+    ESP32(fa:fa-microchip XIAO ESP32C3)
+    WiFi(fa:fa-wifi WiFi Network)
+    HA(fa:fa-home Home Assistant)
 
-        S2_SIG_IN[Sensor 2 Signal In (5V)] --> LLS_HV2[LLS HV2]
-        LLS_LV2[LLS LV2] -- 3.3V Signal --> ESP32_GPIO10[ESP32 GPIO10]
-
-        S3_SIG_IN[Sensor 3 Signal In (5V)] --> LLS_HV3[LLS HV3]
-        LLS_LV3[LLS LV3] -- 3.3V Signal --> ESP32_GPIO8[ESP32 GPIO8]
-
-        ESP32 -- WiFi --> Router[WiFi Router]
+    %% Define the Enclosure Subgraph
+    subgraph Enclosure [Waterproof Enclosure IP67]
+        direction LR // LR = Left to Right inside the box
+        PSU --- LLS --- ESP32
     end
 
-    subgraph Outside [Outside Enclosure]
-        direction TB
-        Sensor1[XKC-Y25-V Sensor 1] -- Brown(+5V), Blue(GND), Yellow(Signal) --> S1_CONN[SP13 Connector 1]
-        Sensor2[XKC-Y25-V Sensor 2] -- Brown(+5V), Blue(GND), Yellow(Signal) --> S2_CONN[SP13 Connector 2]
-        Sensor3[XKC-Y25-V Sensor 3] -- Brown(+5V), Blue(GND), Yellow(Signal) --> S3_CONN[SP13 Connector 3]
+    %% Define Connections / Flow
+    ACPower --> PSU
+    Tank -- Detects Level --> Sensors
+    Sensors -- Wired Connection (5V Signal) --> LLS
+    PSU -- Power (5V / GND) --> Sensors
+    LLS -- Wired Connection (3.3V Signal) --> ESP32
+    ESP32 -- Connects via --> WiFi
+    WiFi --> HA
 
-        S1_CONN -- 5V Power --> HLK
-        S1_CONN -- GND --> GND_COMMON
-        S1_CONN -- 5V Signal --> S1_SIG_IN
-
-        S2_CONN -- 5V Power --> HLK
-        S2_CONN -- GND --> GND_COMMON
-        S2_CONN -- 5V Signal --> S2_SIG_IN
-
-        S3_CONN -- 5V Power --> HLK
-        S3_CONN -- GND --> GND_COMMON
-        S3_CONN -- 5V Signal --> S3_SIG_IN
-
-        AC_Source[AC Power Source] --> AC_CONN[SP16 Power Connector]
-        AC_CONN --> AC
-    end
-
-    Router -- Network --> HA[Home Assistant]
-
-    style Enclosure fill:#f9f,stroke:#333,stroke-width:2px
-    style Outside fill:#e0e0e0,stroke:#333,stroke-width:1px
+    %% Styling
+    style Enclosure fill:#f9f,stroke:#333,stroke-width:2px,color:#000
 ```
 
 
@@ -104,6 +85,7 @@ graph LR
 *   **Wires, PCB:** Jumper wires or a custom PCB for connections.
 
 ![Assembled PCB](images/pcb.jpg)
+
 _Internal components wired within the enclosure._
 
 ## Wiring & Connections
