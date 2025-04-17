@@ -7,7 +7,7 @@
 **This project provides a robust, DIY solution for monitoring liquid levels in a tank using non-contact sensors and seamless integration with Home Assistant.**
 
 ![Final Installation](images/result.jpg)
-_The finished system mounted on a tank, with sensors attached.
+_The finished system mounted on a tank, with sensors attached._
 
 ## Overview
 
@@ -27,42 +27,45 @@ This system continuously monitors liquid presence at three key points in a tank 
 
 ```mermaid
 graph LR
-    subgraph Enclosure (IP67)
+    subgraph Enclosure [Enclosure (IP67)]
+        direction TB
         AC[Mains AC Power] --> HLK[HLK-5M05 Power Supply (5V DC)]
-        HLK --> ESP32[XIAO ESP32C3]
-        HLK --> LLS[Logic Level Shifter HV (5V)]
-        ESP32 -- 3.3V --> LLS_LV[LLS LV (3.3V)]
-        ESP32 -- GND --> LLS_GND[LLS GND]
-        HLK -- GND --> ESP32_GND[ESP32 GND]
+        HLK --> ESP32[XIAO ESP32C3 VIN]
+        HLK --> LLS_HV_PWR[Logic Level Shifter HV (5V)]
+        ESP32_3V3[ESP32 3.3V Out] --> LLS_LV_PWR[LLS LV (3.3V)]
+        GND_COMMON[Common GND] --> LLS_GND[LLS GND]
+        GND_COMMON --> ESP32_GND[ESP32 GND]
+        HLK -- GND --> GND_COMMON
 
-        S1_SIG_IN[Sensor 1 Signal (5V)] --> LLS_HV1[LLS HV1]
+        S1_SIG_IN[Sensor 1 Signal In (5V)] --> LLS_HV1[LLS HV1]
         LLS_LV1[LLS LV1] -- 3.3V Signal --> ESP32_GPIO9[ESP32 GPIO9]
 
-        S2_SIG_IN[Sensor 2 Signal (5V)] --> LLS_HV2[LLS HV2]
+        S2_SIG_IN[Sensor 2 Signal In (5V)] --> LLS_HV2[LLS HV2]
         LLS_LV2[LLS LV2] -- 3.3V Signal --> ESP32_GPIO10[ESP32 GPIO10]
 
-        S3_SIG_IN[Sensor 3 Signal (5V)] --> LLS_HV3[LLS HV3]
+        S3_SIG_IN[Sensor 3 Signal In (5V)] --> LLS_HV3[LLS HV3]
         LLS_LV3[LLS LV3] -- 3.3V Signal --> ESP32_GPIO8[ESP32 GPIO8]
 
         ESP32 -- WiFi --> Router[WiFi Router]
     end
 
-    subgraph Outside Enclosure
+    subgraph Outside [Outside Enclosure]
+        direction TB
         Sensor1[XKC-Y25-V Sensor 1] -- Brown(+5V), Blue(GND), Yellow(Signal) --> S1_CONN[SP13 Connector 1]
         Sensor2[XKC-Y25-V Sensor 2] -- Brown(+5V), Blue(GND), Yellow(Signal) --> S2_CONN[SP13 Connector 2]
         Sensor3[XKC-Y25-V Sensor 3] -- Brown(+5V), Blue(GND), Yellow(Signal) --> S3_CONN[SP13 Connector 3]
 
-        S1_CONN -- 5V --> HLK
-        S1_CONN -- GND --> HLK
-        S1_CONN -- Signal (5V) --> S1_SIG_IN
+        S1_CONN -- 5V Power --> HLK
+        S1_CONN -- GND --> GND_COMMON
+        S1_CONN -- 5V Signal --> S1_SIG_IN
 
-        S2_CONN -- 5V --> HLK
-        S2_CONN -- GND --> HLK
-        S2_CONN -- Signal (5V) --> S2_SIG_IN
+        S2_CONN -- 5V Power --> HLK
+        S2_CONN -- GND --> GND_COMMON
+        S2_CONN -- 5V Signal --> S2_SIG_IN
 
-        S3_CONN -- 5V --> HLK
-        S3_CONN -- GND --> HLK
-        S3_CONN -- Signal (5V) --> S3_SIG_IN
+        S3_CONN -- 5V Power --> HLK
+        S3_CONN -- GND --> GND_COMMON
+        S3_CONN -- 5V Signal --> S3_SIG_IN
 
         AC_Source[AC Power Source] --> AC_CONN[SP16 Power Connector]
         AC_CONN --> AC
@@ -71,63 +74,58 @@ graph LR
     Router -- Network --> HA[Home Assistant]
 
     style Enclosure fill:#f9f,stroke:#333,stroke-width:2px
+    style Outside fill:#e0e0e0,stroke:#333,stroke-width:1px
 ```
-```
 
-## Components & Hardware Used
 
-### XKC-Y25-V Sensor
+## Hardware Components
 
-- **Type**: Non-contact capacitive liquid level sensor.
-- **Function**: It detects the liquid level by measuring changes in capacitance through a non-metallic container wall. This sensor is robust against corrosive liquids and scale.
-- **Electrical Characteristics**: Operates on a supply voltage of 5V – 24V, with a digital high/low output. For this project, the sensor is supplied with 5V.
-- **Terminal Colors**:
-  - Brown Wire: Power Supply Positive (+5V)
-  - Yellow Wire: Signal Output (5V digital signal when liquid is detected according to the chosen output mode)
-  - Blue Wire: Power Supply Negative (GND)
-  - Black Wire: Common terminal (not used for the positive output configuration)
-- **Manual**: [XKC-Y25-V-manual.pdf](./XKC-Y25-V-manual.pdf)
+*   **Sensors:** 3x [XKC-Y25-V](https://www.aliexpress.com/item/1005006143971460.html) Non-contact Capacitive Liquid Level Sensors
+    *   Detects liquid through non-metallic walls.
+    *   Operates at 5V, outputs a 5V digital signal.
+    *   *Connections Used:* Brown (+5V), Blue (GND), Yellow (Signal Output). Black wire is unused.
+    *   *Manual:* [XKC-Y25-V-manual.pdf](./XKC-Y25-V-manual.pdf)
+*   **Microcontroller:** 1x [Seeed Studio XIAO ESP32C3](https://www.seeedstudio.com/Seeed-XIAO-ESP32C3-p-5431.html)
+    *   Compact ESP32 board running ESPHome.
+    *   Reads sensor data (via level shifter) and communicates with Home Assistant.
+    *   Uses GPIO9, GPIO10, GPIO8 for sensor inputs.
+*   **Level Shifter:** 1x [4-Channel IIC I2C Logic Level Shifter Bi-Directional Module](https://www.aliexpress.com/item/1005006968679749.html) (or similar)
+    *   Safely converts the 5V sensor signals to 3.3V for the ESP32.
+    *   Connect HV to 5V, LV to ESP32's 3.3V output, GND to common ground.
+    *   Sensor Yellow Wires -> HV1, HV2, HV3 inputs.
+    *   ESP32 GPIO Pins -> LV1, LV2, LV3 outputs.
+*   **Power Supply:** 1x [Hi-Link HLK-5M05 AC-DC Module (5V, 1A)](https://www.aliexpress.com/item/1005003052023770.html)
+    *   Converts mains AC to 5V DC to power the ESP32 and sensors.
+*   **Connectors:**
+    *   3x SP13 IP68 Waterproof Connector (4-pin) - For detachable sensor connections.
+    *   1x SP16 IP68 Waterproof Connector (3-pin) - For AC power input.
+*   **Enclosure:** 1x Plastic IP67 Rated Enclosure (Size appropriate for components)
+*   **Vent:** 1x M12 Nylon Breathable Waterproof Vent Plug (IP68) - Prevents pressure buildup/condensation.
+*   **Wires, PCB:** Jumper wires or a custom PCB for connections.
 
-### Seeed Studio XIAO ESP32C3
+![Assembled PCB](images/pcb.jpg)
+_Internal components wired within the enclosure._
 
-- **Model**: Compact ESP32-C3 based development board.
-- **Role**: Serves as the central controller that reads sensor states, processes data, and communicates with Home Assistant over WiFi via the ESPHome API.
-- **Operating Voltage**: 3.3V logic on GPIO pins.
-- **GPIO Pins Used**: GPIO9, GPIO10, GPIO8 (as defined in `esphome.yaml`).
+## Wiring & Connections
 
-### 4-Channel IIC I2C Logic Level Shifter Bi-Directional Module
+**(Refer to the textual schematic and component descriptions in the original sections below for detailed pinouts).**
 
-- **Type**: Bi-directional logic level converter module.
-- **Purpose**: Safely converts the sensor's 5V digital output (from the yellow wire) down to 3.3V, which is compatible with the ESP32's GPIO input pins. It also allows for bi-directional communication if needed, although only high-to-low conversion is used in this project.
-- **Channels**: Provides 4 independent channels for level shifting.
-- **Connection**:
-  - `HV` pin connects to the 5V power supply.
-  - `LV` pin connects to the 3.3V power supply (from the ESP32).
-  - `GND` pin connects to the common ground.
-  - Each sensor's 5V signal output (Yellow wire) connects to an `HVx` pin (e.g., `HV1`, `HV2`, `HV3`).
-  - The corresponding 3.3V signal output is taken from the respective `LVx` pin (e.g., `LV1`, `LV2`, `LV3`) and connected to the ESP32 GPIO pin.
-
-### Power Supply
-
-- **Module**: Hi-Link HLK-5M05 AC-DC Step-Down PCB Mount Power Supply Module (5W, 5V, 1A).
-- **Function**: Converts mains AC voltage to the stable 5V DC required by the ESP32 board (via its 5V input pin) and the XKC-Y25-V sensors.
-- **Distribution**: The 5V output powers the ESP32 (which internally regulates to 3.3V for its logic) and the `HV` side of the logic level shifter. The ESP32's 3.3V output powers the `LV` side of the shifter.
-- All components share a common ground (`GND`).
-
-### Waterproof Connectors
-
-- **Sensor Connectors**: SP13 IP68 Waterproof Connector (4 pins). Used to create detachable connections for the three XKC-Y25-V sensors, allowing for easier installation and maintenance. Each sensor uses one 4-pin connector (Brown, Blue, Yellow wires connected; Black wire pin unused).
-- **Power Connector**: SP16 IP68 Waterproof Connector (3 pins). Used for the main AC power input connection to the enclosure, ensuring a watertight seal.
-
-### Enclosure
-
-- **Type**: Plastic IP67 rated enclosure.
-- **Purpose**: Houses the ESP32, power supply, logic level shifter, and internal wiring, protecting them from environmental factors like water and dust.
-
-### Waterproof Vent Plug
-
-- **Type**: M12 Nylon Breathable Valve (IP68).
-- **Purpose**: Installed in the enclosure to allow pressure equalization while preventing water ingress, crucial for outdoor or varying temperature environments to avoid condensation buildup or seal stress.
+1.  **Power Distribution:**
+    *   AC Mains connect via the SP16 connector to the HLK-5M05 input.
+    *   HLK-5M05 5V Output connects to:
+        *   ESP32 VIN pin.
+        *   Level Shifter `HV` pin.
+        *   Sensor Brown Wires (+5V) via SP13 connectors.
+    *   HLK-5M05 GND Output connects to:
+        *   ESP32 GND pin.
+        *   Level Shifter `GND` pin.
+        *   Sensor Blue Wires (GND) via SP13 connectors.
+        *   Ensure all GNDs are common.
+    *   ESP32 3.3V Output connects to Level Shifter `LV` pin.
+2.  **Sensor Signals:**
+    *   Sensor 1 Yellow Wire -> SP13 Pin -> Level Shifter `HV1`. Level Shifter `LV1` -> ESP32 GPIO9.
+    *   Sensor 2 Yellow Wire -> SP13 Pin -> Level Shifter `HV2`. Level Shifter `LV2` -> ESP32 GPIO10.
+    *   Sensor 3 Yellow Wire -> SP13 Pin -> Level Shifter `HV3`. Level Shifter `LV3` -> ESP32 GPIO8.
 
 ## Schematic Diagram (Textual Representation)
 
@@ -151,72 +149,52 @@ Ground ───────────────────────┴�
 (Common GND)
 ```
 
-### Connections Summary:
-
-- **Power**:
-  - All components share a common GND.
-  - XKC-Y25-V Sensors (Brown wire) connect to +5V.
-  - Level Shifter HV pin connects to +5V.
-  - Level Shifter LV pin connects to ESP32 3.3V output.
-  - Level Shifter GND pin connects to common GND.
-- **Signals** (Repeated for each sensor):
-  - Sensor 1 (Yellow wire) → Level Shifter HV1 → Level Shifter LV1 → ESP32 GPIO9
-  - Sensor 2 (Yellow wire) → Level Shifter HV2 → Level Shifter LV2 → ESP32 GPIO10
-  - Sensor 3 (Yellow wire) → Level Shifter HV3 → Level Shifter LV3 → ESP32 GPIO8
-- **Unused**:
-  - XKC-Y25-V Sensor Black wire is unused.
-  - Level Shifter Channel 4 (HV4/LV4) is unused.
-
 > Note: This diagram shows the signal flow for one sensor. The Tank High Level and Tank Low Level sensors are connected identically using separate channels on the logic level shifter (e.g., HV2/LV2 and HV3/LV3) and connected to their respective ESP32 GPIO pins (GPIO10 and GPIO8).
 
-## How It Works
+## Setup & Configuration
 
-### Sensor Operation
+### 1. Hardware Assembly
 
-XKC-Y25-V Sensor:
-The sensor detects the liquid level using capacitive sensing through the tank wall. When liquid is present, its internal circuitry causes the output (yellow wire) to change state (from LOW to HIGH or vice versa based on configuration).
+*   Assemble the components according to the wiring diagram. Use a prototyping board or design a PCB for a cleaner setup.
+*   Mount the power supply, ESP32, and level shifter inside the IP67 enclosure.
+*   Install the waterproof connectors (SP13 for sensors, SP16 for power) and the vent plug on the enclosure walls.
+*   Wire the internal components to the enclosure connectors.
+*   Connect the XKC-Y25-V sensors to the external side of the SP13 connectors.
 
-### Logic Level Shifting
+### 2. ESPHome Firmware
 
-- The 5V signal from each sensor's yellow wire is connected to a high-voltage input pin (`HV1`, `HV2`, or `HV3`) on the 4-channel logic level shifter.
-- The shifter module, powered by both 5V (`HV` pin) and 3.3V (`LV` pin), converts the incoming 5V HIGH signal to a 3.3V HIGH signal on the corresponding low-voltage output pin (`LV1`, `LV2`, or `LV3`).
-- This 3.3V signal is then safely fed into the designated ESP32 GPIO input pin (`GPIO9`, `GPIO10`, or `GPIO8`).
-
-### ESP32 Data Acquisition
-
-- The ESP32, running ESPHome firmware, continuously reads the state of the GPIO pins connected to the level shifter outputs (GPIO9, GPIO10, GPIO8).
-- Each sensor's state (HIGH/ON or LOW/OFF) corresponds to the detection of liquid at its specific level (Sensor 1, Sensor 2, Sensor 3).
-
-### Integration with Home Assistant
-
-- Through the API, ESPHome sends sensor state updates to Home Assistant. This enables you to view real-time measurements and configure automation based on sensor data.
-- The binary sensors are logged and managed via Home Assistant dashboards.
-
-## ESPHome Configuration
-
-The firmware running on the Seeed Studio XIAO ESP32C3 is managed by ESPHome. The configuration defines the board type, WiFi credentials (via secrets), enables the API for Home Assistant communication, and sets up the binary sensors connected to the GPIO pins.
-
-Key aspects of the configuration (`esphome.yaml`):
-
-- **Board**: `seeed_xiao_esp32c3`
-- **Framework**: `esp-idf`
-- **Binary Sensors**:
-  - `Tank Level Sensor 1`: GPIO9 (Input with Pull-up)
-  - `Tank Level Sensor 2`: GPIO10 (Input with Pull-up)
-  - `Tank Level Sensor 3`: GPIO8 (Input with Pull-up)
-- **Device Class**: Set to `moisture` for appropriate representation in Home Assistant.
+*   **Install ESPHome:** If you haven't already, install ESPHome (e.g., as a Home Assistant Add-on).
+*   **Create Configuration:** Create a new ESPHome device configuration. Use the `esphome.yaml` file provided in this repository as a template.
+    *   You **MUST** create a `secrets.yaml` file in your ESPHome directory to store your WiFi credentials (`wifi_ssid` and `wifi_password`). ESPHome will prompt you if it's missing.
+    *   Key settings in `esphome.yaml`:
+        *   Board: `seeed_xiao_esp32c3`
+        *   Framework: `esp-idf`
+        *   Binary Sensors defined for GPIO9, GPIO10, GPIO8 with `device_class: moisture`.
+*   **Compile & Upload:** Compile the firmware using ESPHome and upload it to the XIAO ESP32C3 (initially via USB, subsequent updates can be Over-The-Air via WiFi).
 
 You can view the complete configuration file here: [esphome.yaml](./esphome.yaml)
 
-## Project Images
+### 3. Home Assistant Integration
 
-Below are images of the assembled PCB and the final installation:
+*   Once the ESP32 connects to your WiFi network, Home Assistant should automatically discover it via the ESPHome integration.
+*   Click "Configure" on the discovered device in the Home Assistant Settings -> Devices & Services -> Integrations page.
+*   The three binary sensors (e.g., `Tank Level Sensor 1`, `Tank Level Sensor 2`, `Tank Level Sensor 3`) will appear as entities in Home Assistant.
+*   You can now add these sensors to your dashboard, use them in automations (e.g., send notifications on low level, turn off a pump on high level), and track their history.
 
-**Assembled PCB inside the enclosure:**
-![Assembled PCB](images/pcb.jpg)
+## Installation on Tank
 
-**Final Installation on the Tank:**
-![Final Installation](images/result.jpg)
+*   Clean the tank surface where the sensors will be placed.
+*   Attach the XKC-Y25-V sensors securely to the *outside* of the non-metallic tank wall at the desired monitoring levels. Ensure good contact. Adjust sensitivity if needed (refer to sensor manual).
+*   Mount the enclosure securely near the tank.
+*   Connect the sensor cables to the enclosure via the SP13 connectors.
+*   Connect the main AC power via the SP16 connector.
 
-*Shows the enclosure mounted and the three XKC-Y25-V sensor attached to the tank surface.*
+## Troubleshooting
 
+*   **Sensor Always On/Off:** Check wiring (especially 5V/GND/Signal). Ensure the level shifter is correctly powered (both 5V and 3.3V). Verify sensor sensitivity setting and placement on the tank. Check if the tank material is compatible (non-metallic, within thickness limits).
+*   **Device Offline in Home Assistant:** Verify WiFi credentials in `secrets.yaml`. Check WiFi signal strength near the device. Ensure the ESP32 and power supply are receiving power. Check ESPHome logs (via USB or OTA logs if connected).
+*   **Incorrect Logic Levels:** Double-check level shifter connections (`HV` to 5V, `LV` to 3.3V, `GND` to common ground, signal paths `HVx` <-> `LVx`).
+
+## Contributing
+
+Found a bug or have an improvement? Feel free to open an Issue or submit a Pull Request!
