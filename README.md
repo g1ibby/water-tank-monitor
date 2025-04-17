@@ -1,8 +1,78 @@
-# Tank-Level Monitoring System Using the XKC-Y25-V Sensor
+# ESP32 Tank Level Monitoring with XKC-Y25-V & Home Assistant
+
+[![ESPHome Compatible](https://img.shields.io/badge/ESPHome-Compatible-brightgreen)](https://esphome.io/)
+[![Home Assistant Integration](https://img.shields.io/badge/Home%20Assistant-Integration-blue)](https://www.home-assistant.io/)
+[![DIY Project](https://img.shields.io/badge/DIY-Friendly-orange)](.)
+
+**This project provides a robust, DIY solution for monitoring liquid levels in a tank using non-contact sensors and seamless integration with Home Assistant.**
+
+![Final Installation](images/result.jpg)
+_The finished system mounted on a tank, with sensors attached.
 
 ## Overview
 
-This project is a tank-level monitoring system designed to continuously measure and report the presence of liquid in a tank. The system utilizes the XKC-Y25-V non-contact capacitive liquid level sensor along with an ESP32 development board running ESPHome firmware. The design includes three sensor inputs to monitor overall, high, and low liquid levels. Data from these sensors is communicated to Home Assistant, enabling real-time monitoring and automation.
+This system continuously monitors liquid presence at three key points in a tank (e.g., low, high, and an overall check point) using XKC-Y25-V non-contact capacitive sensors. An ESP32 (specifically, a Seeed Studio XIAO ESP32C3) running ESPHome reads the sensor states and reports them wirelessly to Home Assistant for real-time monitoring, logging, and automation triggers. The entire setup is housed in a waterproof enclosure for durability.
+
+## Key Features
+
+*   **Real-time Monitoring:** Instantly know the state of three crucial tank levels via Home Assistant.
+*   **Non-Contact Sensing:** Utilizes XKC-Y25-V sensors that detect liquid through non-metallic tank walls, avoiding direct contact with the contents – ideal for various liquids, including potentially corrosive ones.
+*   **Triple-Level Detection:** Configure sensors for minimum, maximum, and intermediate levels, or any three points relevant to your needs.
+*   **Reliable Integration:** Uses ESPHome for easy configuration and robust WiFi communication with Home Assistant via its native API.
+*   **DIY Friendly:** Built with readily available components.
+*   **Durable & Safe:** Housed in an IP67 enclosure with waterproof connectors (IP68) and includes necessary logic level shifting for safe operation between the 5V sensors and the 3.3V ESP32.
+*   **AC Powered:** Uses a compact AC-DC converter for a permanent installation.
+
+## How It Works Visually
+
+```mermaid
+graph LR
+    subgraph Enclosure (IP67)
+        AC[Mains AC Power] --> HLK[HLK-5M05 Power Supply (5V DC)]
+        HLK --> ESP32[XIAO ESP32C3]
+        HLK --> LLS[Logic Level Shifter HV (5V)]
+        ESP32 -- 3.3V --> LLS_LV[LLS LV (3.3V)]
+        ESP32 -- GND --> LLS_GND[LLS GND]
+        HLK -- GND --> ESP32_GND[ESP32 GND]
+
+        S1_SIG_IN[Sensor 1 Signal (5V)] --> LLS_HV1[LLS HV1]
+        LLS_LV1[LLS LV1] -- 3.3V Signal --> ESP32_GPIO9[ESP32 GPIO9]
+
+        S2_SIG_IN[Sensor 2 Signal (5V)] --> LLS_HV2[LLS HV2]
+        LLS_LV2[LLS LV2] -- 3.3V Signal --> ESP32_GPIO10[ESP32 GPIO10]
+
+        S3_SIG_IN[Sensor 3 Signal (5V)] --> LLS_HV3[LLS HV3]
+        LLS_LV3[LLS LV3] -- 3.3V Signal --> ESP32_GPIO8[ESP32 GPIO8]
+
+        ESP32 -- WiFi --> Router[WiFi Router]
+    end
+
+    subgraph Outside Enclosure
+        Sensor1[XKC-Y25-V Sensor 1] -- Brown(+5V), Blue(GND), Yellow(Signal) --> S1_CONN[SP13 Connector 1]
+        Sensor2[XKC-Y25-V Sensor 2] -- Brown(+5V), Blue(GND), Yellow(Signal) --> S2_CONN[SP13 Connector 2]
+        Sensor3[XKC-Y25-V Sensor 3] -- Brown(+5V), Blue(GND), Yellow(Signal) --> S3_CONN[SP13 Connector 3]
+
+        S1_CONN -- 5V --> HLK
+        S1_CONN -- GND --> HLK
+        S1_CONN -- Signal (5V) --> S1_SIG_IN
+
+        S2_CONN -- 5V --> HLK
+        S2_CONN -- GND --> HLK
+        S2_CONN -- Signal (5V) --> S2_SIG_IN
+
+        S3_CONN -- 5V --> HLK
+        S3_CONN -- GND --> HLK
+        S3_CONN -- Signal (5V) --> S3_SIG_IN
+
+        AC_Source[AC Power Source] --> AC_CONN[SP16 Power Connector]
+        AC_CONN --> AC
+    end
+
+    Router -- Network --> HA[Home Assistant]
+
+    style Enclosure fill:#f9f,stroke:#333,stroke-width:2px
+```
+```
 
 ## Components & Hardware Used
 
