@@ -163,6 +163,9 @@ You can view the complete configuration file here: [esphome.yaml](./esphome.yaml
 *   The three binary sensors (e.g., `Tank Level Sensor 1`, `Tank Level Sensor 2`, `Tank Level Sensor 3`) will appear as entities in Home Assistant.
 *   You can now add these sensors to your dashboard, use them in automations (e.g., send notifications on low level, turn off a pump on high level), and track their history.
 
+![HA device](images/ha-device.jpg)
+
+
 ## Installation on Tank
 
 *   Clean the tank surface where the sensors will be placed.
